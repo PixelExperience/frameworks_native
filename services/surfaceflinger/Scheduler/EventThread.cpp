@@ -28,6 +28,8 @@
 
 #include <android-base/stringprintf.h>
 
+#include <bfqio/bfqio.h>
+
 #include <cutils/compiler.h>
 #include <cutils/sched_policy.h>
 
@@ -197,6 +199,8 @@ EventThread::EventThread(VSyncSource* src, std::unique_ptr<VSyncSource> uniqueSr
         mDolphinCheck = (bool (*) (const char*))dlsym(mDolphinHandle, "dolphinCheck");
         if (!mDolphinCheck) dlclose(mDolphinHandle);
     }
+
+    android_set_rt_ioprio(tid, 1);
 }
 
 EventThread::~EventThread() {
