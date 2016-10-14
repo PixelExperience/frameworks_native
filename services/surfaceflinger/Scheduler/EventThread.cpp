@@ -200,6 +200,8 @@ EventThread::EventThread(VSyncSource* src, std::unique_ptr<VSyncSource> uniqueSr
         mDolphinCheck = (bool (*) (const char*))dlsym(mDolphinHandle, "dolphinCheck");
         if (!mDolphinCheck) dlclose(mDolphinHandle);
     }
+
+    android_set_rt_ioprio(tid, 1);
 }
 
 EventThread::~EventThread() {
