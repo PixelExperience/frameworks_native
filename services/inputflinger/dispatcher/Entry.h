@@ -276,6 +276,7 @@ struct CommandEntry {
     sp<Connection> connection;
     nsecs_t eventTime;
     std::shared_ptr<KeyEntry> keyEntry;
+    int32_t keyEntryKeyCode;
     std::shared_ptr<SensorEntry> sensorEntry;
     std::shared_ptr<InputApplicationHandle> inputApplicationHandle;
     std::string reason;
