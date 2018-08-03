@@ -44,9 +44,9 @@ protected:
     friend class Layer;
     virtual void handleDPTransactionIfNeeded(
                      const Vector<DisplayState>& displays);
-    virtual void setDisplayAnimating(const sp<const DisplayDevice>& hw,
-                                     const int32_t& dpy);
+    virtual void setDisplayAnimating(const sp<const DisplayDevice>& hw);
     virtual bool IsHWCDisabled() { return mDebugDisableHWC; }
+    virtual void handleMessageRefresh();
     virtual ~ExSurfaceFlinger();
 
     bool mDebugLogs;
