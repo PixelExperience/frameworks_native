@@ -7,7 +7,7 @@
  *
  *      http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
+ * Unless required by applicable law or agreed to in writing, softwaremDisplaysList
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
@@ -1563,6 +1563,13 @@ void SurfaceFlinger::onRefreshReceived(int sequenceId, hwc2_display_t /*hwcDispl
         return;
     }
     repaintEverythingForHWC();
+
+    {
+        // Track Vsync Period before and after refresh.
+        std::lock_guard lock(mVsyncPeriodMutex);
+        mVsyncPeriod = {};
+        mVsyncPeriod.push_back(getVsyncPeriod());
+    }
 }
 
 void SurfaceFlinger::setPrimaryVsyncEnabled(bool enabled) {
@@ -2142,6 +2149,8 @@ void SurfaceFlinger::postComposition()
         mScheduler->addPresentFence(presentFenceTime);
     }
 
+    forceResyncModel();
+
     if (!hasSyncFramework) {
         if (displayDevice && getHwComposer().isConnected(*displayDevice->getId()) &&
             displayDevice->isPoweredOn()) {
@@ -2227,6 +2236,29 @@ void SurfaceFlinger::postComposition()
     // side-effect of getTotalSize(), so we check that again here
     if (ATRACE_ENABLED()) {
         ATRACE_INT64("Total Buffer Size", GraphicBufferAllocator::get().getTotalSize());
+    }
+}
+
+void SurfaceFlinger::forceResyncModel() NO_THREAD_SAFETY_ANALYSIS {
+    std::lock_guard lock(mVsyncPeriodMutex);
+    if (!mVsyncPeriod.size()) {
+        return;
+    }
+
+    const nsecs_t period = getVsyncPeriod();
+    // Model resync should happen at every fps change.
+    // Upon increase/decrease in vsync period start resync immediately.
+    // Initial set of vsync wakeups happen at ref_time + N * period where N = 1, 2, 3 ..
+    // Since if doesnt make use of timestamp to compute period, resync can be triggered
+    // as soon as change is fps(period) is observed.
+
+    if (period > mVsyncPeriod.at(mVsyncPeriod.size() - 1)) {
+        mScheduler->resyncToHardwareVsync(true, period);
+        mVsyncPeriod.push_back(period);
+    } else if (period < mVsyncPeriod.at(mVsyncPeriod.size() - 1)) {
+        // Vsync period changed. Trigger resync.
+        mScheduler->resyncToHardwareVsync(true, period);
+        mVsyncPeriod = {};
     }
 }
 
