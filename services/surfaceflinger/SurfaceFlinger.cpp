@@ -2063,21 +2063,17 @@ void SurfaceFlinger::forceResyncModel() {
     const nsecs_t period = activeConfig->getVsyncPeriod();
 
     // Model resync should happen at every fps change.
-    // Upon increase in vsync period start resync immediately.
-    // Upon decrease wait for one frame time for vsync to update.
-    // Post that resync can be triggered.
+    // Upon increase/decrease in vsync period start resync immediately.
+    // Initial set of vsync wakeups happen at ref_time + N * period where N = 1, 2, 3 ..
+    // Since if doesnt make use of timestamp to compute period, resync can be triggered
+    // as soon as change is fps(period) is observed.
 
     if (period > vsyncPeriod.at(vsyncPeriod.size() - 1)) {
       resyncToHardwareVsync(true);
       vsyncPeriod.push_back(period);
     } else if (period < vsyncPeriod.at(vsyncPeriod.size() - 1)) {
-      // Wait for one more cycle to elapse
-      vsyncPeriod.push_back(period);
-    } else {
-      if (vsyncPeriod.size() != 1) {
-        // Vsync period changed. Trigger resync.
-        resyncToHardwareVsync(true);
-      }
+      // Vsync period changed. Trigger resync.
+      resyncToHardwareVsync(true);
       vsyncPeriod = {};
     }
 }
@@ -5113,11 +5109,13 @@ private:
     const int mApi;
 };
 
-status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display, sp<GraphicBuffer>* outBuffer,
+status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
+                                       sp<GraphicBuffer>* outBuffer, bool& outCapturedSecureLayers,
                                        Rect sourceCrop, uint32_t reqWidth, uint32_t reqHeight,
                                        int32_t minLayerZ, int32_t maxLayerZ,
                                        bool useIdentityTransform,
-                                       ISurfaceComposer::Rotation rotation) {
+                                       ISurfaceComposer::Rotation rotation,
+                                       bool captureSecureLayers) {
     ATRACE_CALL();
 
     if (CC_UNLIKELY(display == 0)) return BAD_VALUE;
@@ -5135,11 +5133,13 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display, sp<GraphicBuf
         }
     }
 
-    DisplayRenderArea renderArea(device, sourceCrop, reqHeight, reqWidth, rotation);
+    DisplayRenderArea renderArea(device, sourceCrop, reqHeight, reqWidth, rotation,
+                                 captureSecureLayers);
 
     auto traverseLayers = std::bind(std::mem_fn(&SurfaceFlinger::traverseLayersInDisplay), this,
                                     device, minLayerZ, maxLayerZ, std::placeholders::_1);
-    return captureScreenCommon(renderArea, traverseLayers, outBuffer, useIdentityTransform);
+    return captureScreenCommon(renderArea, traverseLayers, outBuffer, useIdentityTransform,
+                               outCapturedSecureLayers);
 }
 
 status_t SurfaceFlinger::captureLayers(const sp<IBinder>& layerHandleBinder,
@@ -5255,13 +5255,16 @@ status_t SurfaceFlinger::captureLayers(const sp<IBinder>& layerHandleBinder,
             visitor(layer);
         });
     };
-    return captureScreenCommon(renderArea, traverseLayers, outBuffer, false);
+    bool outCapturedSecureLayers = false;
+    return captureScreenCommon(renderArea, traverseLayers, outBuffer, false,
+                               outCapturedSecureLayers);
 }
 
 status_t SurfaceFlinger::captureScreenCommon(RenderArea& renderArea,
                                              TraverseLayersFunction traverseLayers,
                                              sp<GraphicBuffer>* outBuffer,
-                                             bool useIdentityTransform) {
+                                             bool useIdentityTransform,
+                                             bool& outCapturedSecureLayers) {
     ATRACE_CALL();
 
     renderArea.updateDimensions(mPrimaryDisplayOrientation);
@@ -5299,7 +5302,8 @@ status_t SurfaceFlinger::captureScreenCommon(RenderArea& renderArea,
             Mutex::Autolock _l(mStateLock);
             renderArea.render([&]() {
                 result = captureScreenImplLocked(renderArea, traverseLayers, (*outBuffer).get(),
-                                                 useIdentityTransform, forSystem, &fd);
+                                                 useIdentityTransform, forSystem, &fd,
+                                                 outCapturedSecureLayers);
             });
         }
 
@@ -5454,21 +5458,19 @@ void SurfaceFlinger::renderScreenImplLocked(const RenderArea& renderArea,
 status_t SurfaceFlinger::captureScreenImplLocked(const RenderArea& renderArea,
                                                  TraverseLayersFunction traverseLayers,
                                                  ANativeWindowBuffer* buffer,
-                                                 bool useIdentityTransform,
-                                                 bool forSystem,
-                                                 int* outSyncFd) {
+                                                 bool useIdentityTransform, bool forSystem,
+                                                 int* outSyncFd, bool& outCapturedSecureLayers) {
     ATRACE_CALL();
 
-    bool secureLayerIsVisible = false;
-
     traverseLayers([&](Layer* layer) {
-        secureLayerIsVisible = secureLayerIsVisible || (layer->isVisible() && layer->isSecure());
+        outCapturedSecureLayers =
+                outCapturedSecureLayers || (layer->isVisible() && layer->isSecure());
     });
 
     // We allow the system server to take screenshots of secure layers for
     // use in situations like the Screen-rotation animation and place
     // the impetus on WindowManager to not persist them.
-    if (secureLayerIsVisible && !forSystem) {
+    if (outCapturedSecureLayers && !forSystem) {
         ALOGW("FB is protected: PERMISSION_DENIED");
         return PERMISSION_DENIED;
     }
