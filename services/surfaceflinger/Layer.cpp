@@ -61,8 +61,6 @@
 #include "LayerRejecter.h"
 #include "MonitoredProducer.h"
 #include "SurfaceFlinger.h"
-#include "gralloc_priv.h"
-
 #include "TimeStats/TimeStats.h"
 
 #define DEBUG_RESIZE 0
@@ -654,7 +652,7 @@ bool Layer::isSecure() const {
 
 bool Layer::isSecureDisplay() const {
     const sp<GraphicBuffer>& activeBuffer(mActiveBuffer);
-    return activeBuffer && (activeBuffer->getUsage() & GRALLOC_USAGE_PRIVATE_SECURE_DISPLAY);
+    return activeBuffer && (activeBuffer->getUsage() & (UINT32_C(1) << 31));
 }
 
 void Layer::setVisibleRegion(const Region& visibleRegion) {
