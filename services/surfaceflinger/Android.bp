@@ -173,6 +173,9 @@ cc_library_shared {
     // built, so the same settings can be used elsewhere.
     name: "libsurfaceflinger",
     defaults: ["libsurfaceflinger_production_defaults"],
+    cppflags: [
+        "-Wno-unused-parameter",
+    ],
     srcs: [
         ":libsurfaceflinger_sources",
 
@@ -183,6 +186,9 @@ cc_library_shared {
     logtags: ["EventLog/EventLogTags.logtags"],
     product_variables: {
         aosp: {
+            uses_qcom_um_family: {
+                cflags: ["-DQCOM_UM_FAMILY"],
+            },
             uses_qcom_um_3_18_family: {
                 header_libs: [
                     "//hardware/qcom-caf/msm8996/display:display_intf_headers",
