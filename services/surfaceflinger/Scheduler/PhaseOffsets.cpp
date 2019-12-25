@@ -135,14 +135,18 @@ PhaseOffsets::PhaseOffsets() {
                            perfFpsLateAppOffsetNs != -1 ? perfFpsLateAppOffsetNs
                                                         : highFpsOffsets.late.app};
 
-    mOffsets.insert({RefreshRateType::POWER_SAVING, defaultOffsets});
-    mOffsets.insert({RefreshRateType::LOW0, defaultOffsets});
-    mOffsets.insert({RefreshRateType::LOW1, defaultOffsets});
-    mOffsets.insert({RefreshRateType::LOW2, defaultOffsets});
-    mOffsets.insert({RefreshRateType::DEFAULT, defaultOffsets});
+#ifdef QCOM_UM_FAMILY
     mOffsets.insert({RefreshRateType::PERFORMANCE, perfFpsOffsets});
     mOffsets.insert({RefreshRateType::HIGH1, highFpsOffsets});
     mOffsets.insert({RefreshRateType::HIGH2, highFpsOffsets});
+    mOffsets.insert({RefreshRateType::LOW0, defaultOffsets});
+    mOffsets.insert({RefreshRateType::LOW1, defaultOffsets});
+    mOffsets.insert({RefreshRateType::LOW2, defaultOffsets});
+#else
+    mOffsets.insert({RefreshRateType::POWER_SAVING, defaultOffsets});
+    mOffsets.insert({RefreshRateType::DEFAULT, defaultOffsets});
+    mOffsets.insert({RefreshRateType::PERFORMANCE, highFpsOffsets});
+#endif
 
     mOffsetThresholdForNextVsync = phaseOffsetThresholdForNextVsyncNs != -1
             ? phaseOffsetThresholdForNextVsyncNs
