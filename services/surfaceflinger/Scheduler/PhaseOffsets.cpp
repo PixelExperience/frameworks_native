@@ -102,6 +102,9 @@ PhaseOffsets::PhaseOffsets() {
 #ifdef QCOM_UM_FAMILY
     mOffsets.insert({RefreshRateType::PERF1, highFpsOffsets});
     mOffsets.insert({RefreshRateType::PERF2, highFpsOffsets});
+    mOffsets.insert({RefreshRateType::LOW0, defaultOffsets});
+    mOffsets.insert({RefreshRateType::LOW1, defaultOffsets});
+    mOffsets.insert({RefreshRateType::LOW2, defaultOffsets});
 #endif
 
     mOffsetThresholdForNextVsync = phaseOffsetThresholdForNextVsyncNs != -1
