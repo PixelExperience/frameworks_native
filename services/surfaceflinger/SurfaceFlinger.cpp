@@ -760,7 +760,7 @@ void SurfaceFlinger::bootFinished()
             RefreshRateType refreshRateType = static_cast<RefreshRateType>(type);
             const auto& refreshRate = mRefreshRateConfigs.getRefreshRate(refreshRateType);
             if (refreshRate && isDisplayConfigAllowed(refreshRate->configId)) {
-                setRefreshRateTo(refreshRateType, Scheduler::ConfigEvent::None);
+                setRefreshRateTo(refreshRateType, Scheduler::ConfigEvent::Changed);
                 return;
             }
         }
