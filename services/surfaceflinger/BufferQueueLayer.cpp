@@ -30,10 +30,6 @@
 #include "SurfaceInterceptor.h"
 
 #include "TimeStats/TimeStats.h"
-#ifdef QCOM_UM_FAMILY
-#include "frame_extn_intf.h"
-#include "smomo_interface.h"
-#endif
 
 namespace android {
 
@@ -113,19 +109,7 @@ bool BufferQueueLayer::shouldPresentNow(nsecs_t expectedPresentTime) const {
              "relative to expectedPresent %" PRId64,
              mName.string(), addedTime, expectedPresentTime);
 
-    bool isDue = addedTime < expectedPresentTime;
-
-#ifdef QCOM_UM_FAMILY
-    if (isDue && mFlinger->mUseSmoMo) {
-        smomo::SmomoBufferStats bufferStats;
-        bufferStats.id = getSequence();
-        bufferStats.queued_frames = getQueuedFrameCount();
-        bufferStats.auto_timestamp = mQueueItems[0].mIsAutoTimestamp;
-        bufferStats.timestamp = mQueueItems[0].mTimestamp;
-        isDue = mFlinger->mSmoMo->ShouldPresentNow(bufferStats, expectedPresentTime);
-    }
-#endif
-
+    const bool isDue = addedTime < expectedPresentTime;
     return isDue || !isPlausible;
 }
 
@@ -430,11 +414,6 @@ void BufferQueueLayer::setHwcLayerBuffer(const sp<const DisplayDevice>& display)
     (*outputLayer->editState().hwc)
             .hwcBufferCache.getHwcBuffer(slot, mActiveBuffer, &hwcSlot, &hwcBuffer);
 
-    if (mPrimaryDisplayOnly && (!mSetLayerAsMask)) {
-        mSetLayerAsMask = true;
-        mFlinger->setLayerAsMask(display, (hwcLayer->getId()));
-    }
-
     auto acquireFence = mConsumer->getCurrentFence();
     auto error = hwcLayer->setBuffer(hwcSlot, hwcBuffer, acquireFence);
     if (error != HWC2::Error::None) {
@@ -495,51 +474,12 @@ void BufferQueueLayer::onFrameAvailable(const BufferItem& item) {
 
     mFlinger->mInterceptor->saveBufferUpdate(this, item.mGraphicBuffer->getWidth(),
                                              item.mGraphicBuffer->getHeight(), item.mFrameNumber);
-#ifdef QCOM_UM_FAMILY
-    if (mFlinger->mUseSmoMo) {
-        smomo::SmomoBufferStats bufferStats;
-        bufferStats.id = getSequence();
-        bufferStats.queued_frames = getQueuedFrameCount();
-        bufferStats.auto_timestamp = item.mIsAutoTimestamp;
-        bufferStats.timestamp = item.mTimestamp;
-        mFlinger->mSmoMo->CollectLayerStats(bufferStats);
-    }
-#endif
 
     // If this layer is orphaned, then we run a fake vsync pulse so that
     // dequeueBuffer doesn't block indefinitely.
     if (isRemovedFromCurrentState()) {
         fakeVsync();
     } else {
-#ifdef QCOM_UM_FAMILY
-        if (mFlinger->mFrameExtn && mFlinger->mDolphinFuncsEnabled) {
-            composer::FrameInfo frameInfo;
-            Rect crop;
-            frameInfo.version.major = (uint8_t)(1);
-            frameInfo.version.minor = (uint8_t)(0);
-            frameInfo.max_queued_frames = mFlinger->mMaxQueuedFrames;
-            frameInfo.num_idle = mFlinger->mNumIdle;
-            frameInfo.max_queued_layer_name = mFlinger->mNameLayerMax.c_str();
-            frameInfo.current_timestamp = systemTime(SYSTEM_TIME_MONOTONIC);
-            frameInfo.previous_timestamp = mLastTimeStamp;
-            frameInfo.vsync_timestamp = mFlinger->mVsyncTimeStamp;
-            frameInfo.refresh_timestamp = mFlinger->mRefreshTimeStamp;
-            frameInfo.ref_latency = mFrameTracker.getPreviousGfxInfo();
-            DisplayStatInfo stats;
-            mFlinger->mScheduler->getDisplayStatInfo(&stats);
-            frameInfo.vsync_period = stats.vsyncPeriod;
-            mLastTimeStamp = frameInfo.current_timestamp;
-            {
-                Mutex::Autolock lock(mFlinger->mStateLock);
-                frameInfo.transparent_region = this->visibleNonTransparentRegion.isEmpty();
-                crop = this->getContentCrop();
-                frameInfo.width = crop.getWidth();
-                frameInfo.height = crop.getHeight();
-                frameInfo.layer_name = this->getName().c_str();
-            }
-            mFlinger->mFrameExtn->SetFrameInfo(frameInfo);
-        }
-#endif
         mFlinger->signalLayerUpdate();
     }
     mConsumer->onBufferAvailable(item);

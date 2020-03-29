@@ -67,7 +67,9 @@ struct InstanceData {
         : opaque_api_data(),
           allocator(alloc),
           driver(),
-          get_device_proc_addr(nullptr) {}
+          get_device_proc_addr(nullptr) {
+        hook_extensions.set(ProcHook::EXTENSION_CORE);
+    }
 
     api::InstanceData opaque_api_data;
 
@@ -87,7 +89,9 @@ struct DeviceData {
         : opaque_api_data(),
           allocator(alloc),
           debug_report_callbacks(debug_report_callbacks_),
-          driver() {}
+          driver() {
+        hook_extensions.set(ProcHook::EXTENSION_CORE);
+    }
 
     api::DeviceData opaque_api_data;
 

@@ -519,11 +519,7 @@ LayerChain::LayerChain(bool is_instance,
       get_device_proc_addr_(nullptr),
       driver_extensions_(nullptr),
       driver_extension_count_(0) {
-    // advertise the loader supported core Vulkan API version at vulkan::api
-    for (uint32_t i = driver::ProcHook::EXTENSION_CORE_1_0;
-         i != driver::ProcHook::EXTENSION_COUNT; ++i) {
-        enabled_extensions_.set(i);
-    }
+    enabled_extensions_.set(driver::ProcHook::EXTENSION_CORE);
 }
 
 LayerChain::~LayerChain() {

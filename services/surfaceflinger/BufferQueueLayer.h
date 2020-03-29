@@ -132,7 +132,6 @@ private:
     std::atomic<uint64_t> mLastFrameNumberReceived{0};
 
     bool mAutoRefresh{false};
-    bool mSetLayerAsMask{false};
     int mActiveBufferSlot{BufferQueue::INVALID_BUFFER_SLOT};
 
     // thread-safe
@@ -140,9 +139,6 @@ private:
     std::atomic<bool> mSidebandStreamChanged{false};
 
     void fakeVsync();
-#ifdef QCOM_UM_FAMILY
-    nsecs_t mLastTimeStamp = -1;
-#endif
 };
 
 } // namespace android
