@@ -33,17 +33,11 @@ namespace scheduler {
  * readable names.
  */
 class RefreshRateConfigs {
-    static const int DEFAULT_FPS = 60;
-
 public:
     // Enum to indicate which vsync rate to run at. Power saving is intended to be the lowest
     // (eg. when the screen is in AOD mode or off), default is the old 60Hz, and performance
     // is the new 90Hz. Eventually we want to have a way for vendors to map these in the configs.
-#ifdef QCOM_UM_FAMILY
-    enum class RefreshRateType {POWER_SAVING, LOW0, LOW1, LOW2, DEFAULT, PERFORMANCE, PERF1, PERF2};
-#else
-    enum class RefreshRateType {POWER_SAVING, DEFAULT, PERFORMANCE};
-#endif
+    enum class RefreshRateType { POWER_SAVING, DEFAULT, PERFORMANCE };
 
     struct RefreshRate {
         // This config ID corresponds to the position of the config in the vector that is stored
@@ -94,77 +88,50 @@ public:
             return;
         }
 
-        // Populate mRefreshRates with configs having the same resolution as active config.
-        // Resolution change or SF::setActiveConfig will re-populate the mRefreshRates map.
-        int32_t activeWidth = configs.at(mActiveConfig)->getWidth();
-        int32_t activeHeight = configs.at(mActiveConfig)->getHeight();
-
         // Create a map between config index and vsync period. This is all the info we need
         // from the configs.
         std::vector<std::pair<int, nsecs_t>> configIdToVsyncPeriod;
         for (int i = 0; i < configs.size(); ++i) {
-            if ((configs.at(i)->getWidth() != activeWidth) ||
-                (configs.at(i)->getHeight() != activeHeight)) {
-                continue;
-            }
             configIdToVsyncPeriod.emplace_back(i, configs.at(i)->getVsyncPeriod());
         }
 
-        // Sort the configs based on Refresh rate.
         std::sort(configIdToVsyncPeriod.begin(), configIdToVsyncPeriod.end(),
                   [](const std::pair<int, nsecs_t>& a, const std::pair<int, nsecs_t>& b) {
                       return a.second > b.second;
                   });
 
-#ifdef QCOM_UM_FAMILY
-        int maxRefreshType = (int)RefreshRateType::PERF2;
-        int lowRefreshType = (int)RefreshRateType::LOW0;
-#else
-        int maxRefreshType = (int)RefreshRateType::PERFORMANCE;
-        int lowRefreshType = (int)RefreshRateType::POWER_SAVING;
-#endif
-        int defaultType = (int)RefreshRateType::DEFAULT;
-        int type = (int)RefreshRateType::DEFAULT;
-
-        // When the configs are sorted by refresh rate. For configs with refresh rate lower than
-        // DEFAULT_FPS, they are supported with LOW0, LOW1 and LOW2 refresh rate types. For the
-        // configs with refresh rate higher than DEFAULT_FPS, they are supported with PERFORMANCE,
-        // PERF1 and PERF2 refresh rate types.
-
-        for (int j = 0; j < configIdToVsyncPeriod.size(); j++) {
-            nsecs_t vsyncPeriod = configIdToVsyncPeriod[j].second;
-            if (vsyncPeriod == 0) {
-                continue;
-            }
-
+        // When the configs are ordered by the resync rate. We assume that the first one is DEFAULT.
+        nsecs_t vsyncPeriod = configIdToVsyncPeriod[0].second;
+        if (vsyncPeriod != 0) {
             const float fps = 1e9 / vsyncPeriod;
-            uint32_t refreshRate = static_cast<uint32_t>(fps);
-            const int configId = configIdToVsyncPeriod[j].first;
-            hwc2_config_t hwcConfigId = configs.at(configId)->getId();
+            const int configId = configIdToVsyncPeriod[0].first;
+            mRefreshRates.emplace(RefreshRateType::DEFAULT,
+                                  std::make_shared<RefreshRate>(
+                                          RefreshRate{configId, base::StringPrintf("%2.ffps", fps),
+                                                      static_cast<uint32_t>(fps),
+                                                      configs.at(configId)->getId()}));
+        }
 
-            if ((refreshRate < DEFAULT_FPS) && (lowRefreshType < defaultType)) {
-                // Populate Low Refresh Rate Configs
-                mRefreshRates.emplace(static_cast<RefreshRateType>(lowRefreshType),
-                                      std::make_shared<RefreshRate>(
+        if (configs.size() < 2) {
+            return;
+        }
+
+        // When the configs are ordered by the resync rate. We assume that the second one is
+        // PERFORMANCE, eg. the higher rate.
+        vsyncPeriod = configIdToVsyncPeriod[1].second;
+        if (vsyncPeriod != 0) {
+            const float fps = 1e9 / vsyncPeriod;
+            const int configId = configIdToVsyncPeriod[1].first;
+            mRefreshRates.emplace(RefreshRateType::PERFORMANCE,
+                                  std::make_shared<RefreshRate>(
                                           RefreshRate{configId, base::StringPrintf("%2.ffps", fps),
-                                                      refreshRate, hwcConfigId}));
-                lowRefreshType++;
-            } else if ((refreshRate >= DEFAULT_FPS) && (type <= maxRefreshType)) {
-                // Populate Default or Perf Refresh Rate Configs
-                mRefreshRates.emplace(static_cast<RefreshRateType>(type),
-                                      std::make_shared<RefreshRate>(
-                                          RefreshRate{configId, base::StringPrintf("%2.ffps", fps),
-                                                      refreshRate, hwcConfigId}));
-                type++;
-            }
+                                                      static_cast<uint32_t>(fps),
+                                                      configs.at(configId)->getId()}));
         }
     }
 
-    void setActiveConfig(int config) { mActiveConfig = config; }
-
 private:
     std::map<RefreshRateType, std::shared_ptr<RefreshRate>> mRefreshRates;
-    int mActiveConfig = 0;
 };
 
 } // namespace scheduler

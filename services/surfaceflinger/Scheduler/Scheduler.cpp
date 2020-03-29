@@ -245,7 +245,7 @@ void Scheduler::disableHardwareVsync(bool makeUnavailable) {
     }
 }
 
-void Scheduler::resyncToHardwareVsync(bool makeAvailable, nsecs_t period, bool force_resync) {
+void Scheduler::resyncToHardwareVsync(bool makeAvailable, nsecs_t period) {
     {
         std::lock_guard<std::mutex> lock(mHWVsyncLock);
         if (makeAvailable) {
@@ -261,7 +261,7 @@ void Scheduler::resyncToHardwareVsync(bool makeAvailable, nsecs_t period, bool f
         return;
     }
 
-    setVsyncPeriod(period, force_resync);
+    setVsyncPeriod(period);
 }
 
 ResyncCallback Scheduler::makeResyncCallback(GetVsyncPeriod&& getVsyncPeriod) {
@@ -277,13 +277,10 @@ void Scheduler::VsyncState::resync(const GetVsyncPeriod& getVsyncPeriod) {
     static constexpr nsecs_t kIgnoreDelay = ms2ns(750);
 
     const nsecs_t now = systemTime();
-    const nsecs_t last = lastResyncTime;
+    const nsecs_t last = lastResyncTime.exchange(now);
 
     if (now - last > kIgnoreDelay) {
-        ATRACE_BEGIN("scheduler.resyncToHardwareVsync");
         scheduler.resyncToHardwareVsync(false, getVsyncPeriod());
-        lastResyncTime.exchange(now);
-        ATRACE_END();
     }
 }
 
@@ -291,11 +288,11 @@ void Scheduler::setRefreshSkipCount(int count) {
     mPrimaryDispSync->setRefreshSkipCount(count);
 }
 
-void Scheduler::setVsyncPeriod(const nsecs_t period, bool force_resync) {
+void Scheduler::setVsyncPeriod(const nsecs_t period) {
     std::lock_guard<std::mutex> lock(mHWVsyncLock);
     mPrimaryDispSync->setPeriod(period);
 
-    if (!mPrimaryHWVsyncEnabled || force_resync) {
+    if (!mPrimaryHWVsyncEnabled) {
         mPrimaryDispSync->beginResync();
         mEventControlThread->setVsyncEnabled(true);
         mPrimaryHWVsyncEnabled = true;
@@ -570,7 +567,6 @@ Scheduler::RefreshRateType Scheduler::calculateRefreshRateType() {
     }
 
     // Content detection is on, find the appropriate refresh rate with minimal error
-    // TODO(b/139751853): Scan allowed refresh rates only (SurfaceFlinger::mAllowedDisplayConfigs)
     auto begin = mRefreshRateConfigs.getRefreshRates().cbegin();
 
     // Skip POWER_SAVING config as it is not a real config

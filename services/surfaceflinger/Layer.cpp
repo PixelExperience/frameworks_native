@@ -61,10 +61,6 @@
 #include "LayerRejecter.h"
 #include "MonitoredProducer.h"
 #include "SurfaceFlinger.h"
-#ifdef QCOM_UM_FAMILY
-#include "gralloc_priv.h"
-#endif
-
 #include "TimeStats/TimeStats.h"
 
 #define DEBUG_RESIZE 0
@@ -72,7 +68,6 @@
 namespace android {
 
 using base::StringAppendF;
-using android::hardware::graphics::common::V1_0::BufferUsage;
 
 std::atomic<int32_t> Layer::sSequence{1};
 
@@ -653,22 +648,6 @@ void Layer::computeGeometry(const RenderArea& renderArea,
 bool Layer::isSecure() const {
     const State& s(mDrawingState);
     return (s.flags & layer_state_t::eLayerSecure);
-}
-
-bool Layer::isSecureDisplay() const {
-#ifdef QCOM_UM_FAMILY
-    const sp<GraphicBuffer>& activeBuffer(mActiveBuffer);
-    return activeBuffer && (activeBuffer->getUsage() & GRALLOC_USAGE_PRIVATE_SECURE_DISPLAY);
-#else
-    return false;
-#endif
-}
-
-bool Layer::isSecureCamera() const {
-    const sp<GraphicBuffer>& activeBuffer(mActiveBuffer);
-    bool protected_buffer = activeBuffer && (activeBuffer->getUsage() & BufferUsage::PROTECTED);
-    bool camera_output = activeBuffer && (activeBuffer->getUsage() & BufferUsage::CAMERA_OUTPUT);
-    return protected_buffer && camera_output;
 }
 
 void Layer::setVisibleRegion(const Region& visibleRegion) {
