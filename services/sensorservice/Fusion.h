@@ -60,11 +60,6 @@ class Fusion {
      */
     mat<mat33_t, 2, 2> GQGt;
 
-    /**
-     * the maximum acceptable geomagnetic-field (square)
-     */
-    float maxValidMagFieldSq;
-
 public:
     Fusion();
     void init(int mode = FUSION_9AXIS);
