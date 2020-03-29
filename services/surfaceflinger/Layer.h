@@ -52,7 +52,6 @@
 #include "RenderArea.h"
 #include "SurfaceFlinger.h"
 #include "TransactionCompletedThread.h"
-#include <android/hardware/graphics/common/1.0/types.h>
 
 using namespace android::surfaceflinger;
 
@@ -398,16 +397,6 @@ public:
     bool isSecure() const;
 
     /*
-     * isSecureDisplay - true if this display is secure, false otherwise
-     */
-    bool isSecureDisplay() const;
-
-    /*
-     * isSecureCamera - true if this camera layer is secure, false otherwise
-     */
-    bool isSecureCamera() const;
-
-    /*
      * isVisible - true if this layer is visible, false otherwise
      */
     virtual bool isVisible() const = 0;
@@ -526,9 +515,6 @@ public:
 
     // If a buffer was replaced this frame, release the former buffer
     virtual void releasePendingBuffer(nsecs_t /*dequeueReadyTime*/) { }
-
-    // For Animation Hint
-    virtual bool isScreenshot() const { return false; }
 
     /*
      * prepareClientLayer - populates a renderengine::LayerSettings to passed to
