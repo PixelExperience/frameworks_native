@@ -49,7 +49,6 @@ public:
     virtual void setRefreshRateType(RefreshRateConfigs::RefreshRateType refreshRateType) = 0;
     virtual nsecs_t getOffsetThresholdForNextVsync() const = 0;
     virtual void dump(std::string& result) const = 0;
-    virtual void setDefaultRefreshRateType(RefreshRateConfigs::RefreshRateType type) = 0;
 };
 
 namespace impl {
@@ -80,19 +79,12 @@ public:
     // Returns current offsets in human friendly format.
     void dump(std::string& result) const override;
 
-    // Set Phase Offsets type for the Default Refresh Rate config.
-    void setDefaultRefreshRateType(RefreshRateConfigs::RefreshRateType refreshRateType) override {
-        mDefaultPhaseOffsetType = refreshRateType;
-    }
-
 private:
     std::atomic<RefreshRateConfigs::RefreshRateType> mRefreshRateType =
             RefreshRateConfigs::RefreshRateType::DEFAULT;
 
     std::unordered_map<RefreshRateConfigs::RefreshRateType, Offsets> mOffsets;
     nsecs_t mOffsetThresholdForNextVsync;
-    RefreshRateConfigs::RefreshRateType mDefaultPhaseOffsetType =
-        RefreshRateConfigs::RefreshRateType::DEFAULT;
 };
 } // namespace impl
 

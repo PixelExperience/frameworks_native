@@ -53,8 +53,6 @@
 #include "SurfaceFlinger.h"
 #include "TransactionCompletedThread.h"
 
-#include <android/hardware/graphics/common/1.0/types.h>
-
 using namespace android::surfaceflinger;
 
 namespace android {
@@ -226,11 +224,6 @@ public:
 
     void setPrimaryDisplayOnly() { mPrimaryDisplayOnly = true; }
     bool getPrimaryDisplayOnly() const { return mPrimaryDisplayOnly; }
-
-    void setDequeueLatency(const nsecs_t latency) { mDequeueLatency = latency; }
-    nsecs_t getDequeueLatency() const { return mDequeueLatency; }
-
-    uint32_t getLayerType() const { return mLayerType; }
 
     // ------------------------------------------------------------------------
     // Geometry setting functions.
@@ -404,16 +397,6 @@ public:
     bool isSecure() const;
 
     /*
-     * isSecureDisplay - true if this display is secure, false otherwise
-     */
-    bool isSecureDisplay() const;
-
-    /*
-     * isSecureCamera - true if this camera layer is secure, false otherwise
-     */
-    bool isSecureCamera() const;
-
-    /*
      * isVisible - true if this layer is visible, false otherwise
      */
     virtual bool isVisible() const = 0;
@@ -532,9 +515,6 @@ public:
 
     // If a buffer was replaced this frame, release the former buffer
     virtual void releasePendingBuffer(nsecs_t /*dequeueReadyTime*/) { }
-
-    // For Animation Hint
-    virtual bool isScreenshot() const { return false; }
 
     /*
      * prepareClientLayer - populates a renderengine::LayerSettings to passed to
@@ -870,11 +850,6 @@ protected:
     FenceTimeline mAcquireTimeline;
     FenceTimeline mReleaseTimeline;
 
-    // latest buffer dequeue latency
-    std::atomic<nsecs_t> mDequeueLatency{0};
-
-    uint32_t mLayerType{0};
-
     // main thread
     sp<NativeHandle> mSidebandStream;
     // Active buffer fields
@@ -901,8 +876,6 @@ protected:
 
     // protected by mLock
     mutable Mutex mLock;
-
-    mutable Mutex mActiveBufferLock;
 
     const wp<Client> mClientRef;
 

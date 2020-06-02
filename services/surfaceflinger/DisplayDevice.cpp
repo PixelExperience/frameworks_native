@@ -64,10 +64,7 @@ DisplayDevice::DisplayDevice(DisplayDeviceCreationArgs&& args)
         mIsVirtual(args.isVirtual),
         mOrientation(),
         mActiveConfig(0),
-        mIsPrimary(args.isPrimary),
-        mIsPowerModeOverride(false),
-        mIsAnimating(false),
-        mIsDisplayBuiltInType(false) {
+        mIsPrimary(args.isPrimary) {
     mCompositionDisplay->createRenderSurface(
             compositionengine::RenderSurfaceCreationArgs{ANativeWindow_getWidth(
                                                                  args.nativeWindow.get()),
@@ -158,30 +155,6 @@ void DisplayDevice::setActiveConfig(int mode) {
 
 int DisplayDevice::getActiveConfig()  const {
     return mActiveConfig;
-}
-
-void DisplayDevice::setPowerModeOverrideConfig(bool supported) {
-    mIsPowerModeOverride = supported;
-}
-
-bool DisplayDevice::getPowerModeOverrideConfig() const {
-    return mIsPowerModeOverride;
-}
-
-void DisplayDevice::setAnimating(bool isAnimating) {
-    mIsAnimating = isAnimating;
-}
-
-bool DisplayDevice::getAnimating() const {
-    return mIsAnimating;
-}
-
-void DisplayDevice::setIsDisplayBuiltInType(bool isBuiltInType) {
-    mIsDisplayBuiltInType = isBuiltInType;
-}
-
-bool DisplayDevice::getIsDisplayBuiltInType() const {
-    return mIsDisplayBuiltInType;
 }
 
 // ----------------------------------------------------------------------------
@@ -299,13 +272,17 @@ void DisplayDevice::setProjection(int orientation,
         scissor = displayBounds;
     }
 
+    uint32_t transformOrientation;
+
     if (isPrimary()) {
         sPrimaryDisplayOrientation = displayStateOrientationToTransformOrientation(orientation);
+        transformOrientation = displayStateOrientationToTransformOrientation(
+                (orientation + mDisplayInstallOrientation) % (DisplayState::eOrientation270 + 1));
+    } else {
+        transformOrientation = displayStateOrientationToTransformOrientation(orientation);
     }
 
-    getCompositionDisplay()->setProjection(globalTransform,
-                                           displayStateOrientationToTransformOrientation(
-                                                   orientation),
+    getCompositionDisplay()->setProjection(globalTransform, transformOrientation,
                                            frame, viewport, scissor, needsFiltering);
 }
 
