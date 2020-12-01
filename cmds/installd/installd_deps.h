@@ -34,7 +34,7 @@ extern int get_property(const char *key,
                         const char *default_value);
 // Size constants. Should be checked to be equal to the cutils requirements.
 constexpr size_t kPropertyKeyMax = 32u;
-constexpr size_t kPropertyValueMax = 92u;
+constexpr size_t kPropertyValueMax = 151u;
 
 // Compute the output path for dex2oat.
 extern bool calculate_oat_file_path(char path[PKG_PATH_MAX],
