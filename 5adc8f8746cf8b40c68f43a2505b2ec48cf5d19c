@@ -33,6 +33,24 @@
       "message": "This implies an alignment with BoardConfigSoong.mk like this -\u003e https://gerrit.pixelexperience.org/c/vendor_aosp/+/11332 - right?",
       "revId": "5adc8f8746cf8b40c68f43a2505b2ec48cf5d19c",
       "serverId": "8ba0da3e-d57f-4bbe-ac74-faf358ba962a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "081c6c5b_de835bcf",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000554
+      },
+      "writtenOn": "2021-12-17T15:18:05Z",
+      "side": 1,
+      "message": "We already have it:\nhttps://github.com/PixelExperience/vendor_aosp/blob/twelve/config/BoardConfigSoong.mk#L38\nhttps://github.com/PixelExperience/vendor_aosp/blob/twelve/config/BoardConfigSoong.mk#L89\nhttps://github.com/PixelExperience/vendor_aosp/blob/twelve/config/BoardConfigSoong.mk#L101",
+      "parentUuid": "85e54e48_d7938e4d",
+      "revId": "5adc8f8746cf8b40c68f43a2505b2ec48cf5d19c",
+      "serverId": "8ba0da3e-d57f-4bbe-ac74-faf358ba962a"
     }
   ]
 }
