@@ -16,6 +16,23 @@
       "message": "Hey Henrique,\n\nthanks for merging.\n\nAlso, I have applied for maintainership for Xiaomi Mi 10 Lite 5G and Xiaomi Mi 10 Lite Zoom/Youth Edition, I would appreciate, if you would take a look at it:\nhttps://github.com/PixelExperience/official_devices/issues/2417\n\nThere\u0027s still one patch on Gerrit open to be merged yet, needed for A12:\nhttps://gerrit.pixelexperience.org/c/hardware_custom_interfaces/+/14336\n\nGreetings,\nMarlon\n",
       "revId": "5adc8f8746cf8b40c68f43a2505b2ec48cf5d19c",
       "serverId": "8ba0da3e-d57f-4bbe-ac74-faf358ba962a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "85e54e48_d7938e4d",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000571
+      },
+      "writtenOn": "2021-12-17T15:07:05Z",
+      "side": 1,
+      "message": "This implies an alignment with BoardConfigSoong.mk like this -\u003e https://gerrit.pixelexperience.org/c/vendor_aosp/+/11332 - right?",
+      "revId": "5adc8f8746cf8b40c68f43a2505b2ec48cf5d19c",
+      "serverId": "8ba0da3e-d57f-4bbe-ac74-faf358ba962a"
     }
   ]
 }
