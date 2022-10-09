@@ -1265,6 +1265,7 @@ private:
     std::atomic_bool mForceFullDamage = false;
 
     bool mLayerCachingEnabled = false;
+    bool mPropagateBackpressure = true;
     bool mPropagateBackpressureClientComposition = false;
     sp<SurfaceInterceptor> mInterceptor;
 
