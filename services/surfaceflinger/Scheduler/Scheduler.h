@@ -460,7 +460,8 @@ private:
                 schedulePtr(std::move(schedulePtr)),
                 targeterPtr(std::make_unique<
                             FrameTargeter>(displayId,
-                                           features.test(Feature::kBackpressureGpuComposition))) {}
+                                           features.test(Feature::kBackpressureGpuComposition),
+                                           features.test(Feature::kPropagateBackpressure))) {}
 
         const PhysicalDisplayId displayId;
 

@@ -105,9 +105,10 @@ private:
 // Computes a display's per-frame metrics about past/upcoming targeting of present deadlines.
 class FrameTargeter final : private FrameTarget {
 public:
-    FrameTargeter(PhysicalDisplayId displayId, bool backpressureGpuComposition)
+    FrameTargeter(PhysicalDisplayId displayId, bool backpressureGpuComposition, bool propagateBackpressure)
           : FrameTarget(to_string(displayId)),
-            mBackpressureGpuComposition(backpressureGpuComposition) {}
+            mBackpressureGpuComposition(backpressureGpuComposition),
+            mPropagateBackpressure(propagateBackpressure) {}
 
     const FrameTarget& target() const { return *this; }
 
@@ -138,6 +139,7 @@ private:
     static bool isFencePending(const FenceTimePtr&, int graceTimeMs);
 
     const bool mBackpressureGpuComposition;
+    const bool mPropagateBackpressure;
 
     TimePoint mScheduledPresentTime;
     CompositionCoverageFlags mCompositionCoverage;
