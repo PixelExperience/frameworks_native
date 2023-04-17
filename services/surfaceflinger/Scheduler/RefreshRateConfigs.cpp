@@ -717,11 +717,6 @@ std::optional<Fps> RefreshRateConfigs::onKernelTimerChanged(
     return mode->getFps();
 }
 
-DisplayModePtr RefreshRateConfigs::getMinRefreshRateByPolicy() const {
-    std::lock_guard lock(mLock);
-    return getMinRefreshRateByPolicyLocked();
-}
-
 const DisplayModePtr& RefreshRateConfigs::getMinRefreshRateByPolicyLocked() const {
     for (const DisplayModeIterator modeIt : mPrimaryRefreshRates) {
         const auto& mode = modeIt->second;
