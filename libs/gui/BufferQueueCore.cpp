@@ -130,8 +130,7 @@ BufferQueueCore::BufferQueueCore()
         mLastQueuedSlot(INVALID_BUFFER_SLOT),
         mUniqueId(getUniqueId()),
         mAutoPrerotation(false),
-        mTransformHintInUse(0),
-        mConsumerCanWait(true) {
+        mTransformHintInUse(0) {
     int numStartingBuffers = getMaxBufferCountLocked();
     for (int s = 0; s < numStartingBuffers; s++) {
         mFreeSlots.insert(s);
@@ -150,9 +149,8 @@ void BufferQueueCore::dumpState(const String8& prefix, String8* outResult) const
     outResult->appendFormat("%s- BufferQueue ", prefix.string());
     outResult->appendFormat("mMaxAcquiredBufferCount=%d mMaxDequeuedBufferCount=%d\n",
                             mMaxAcquiredBufferCount, mMaxDequeuedBufferCount);
-    outResult->appendFormat("%s  mDequeueBufferCannotBlock=%d mAsyncMode=%d mConsumerCanWait=%d\n",
-                            prefix.string(), mDequeueBufferCannotBlock, mAsyncMode,
-                            mConsumerCanWait);
+    outResult->appendFormat("%s  mDequeueBufferCannotBlock=%d mAsyncMode=%d\n", prefix.string(),
+                            mDequeueBufferCannotBlock, mAsyncMode);
     outResult->appendFormat("%s  mQueueBufferCanDrop=%d mLegacyBufferDrop=%d\n", prefix.string(),
                             mQueueBufferCanDrop, mLegacyBufferDrop);
     outResult->appendFormat("%s  default-size=[%dx%d] default-format=%d ", prefix.string(),
@@ -226,7 +224,11 @@ void BufferQueueCore::dumpState(const String8& prefix, String8* outResult) const
 int BufferQueueCore::getMinUndequeuedBufferCountLocked() const {
     // If dequeueBuffer is allowed to error out, we don't have to add an
     // extra buffer.
-    return mMaxAcquiredBufferCount + getExtraBufferCountLocked();
+    if (mAsyncMode || mDequeueBufferCannotBlock) {
+        return mMaxAcquiredBufferCount + 1;
+    }
+
+    return mMaxAcquiredBufferCount;
 }
 
 int BufferQueueCore::getMinMaxBufferCountLocked() const {
@@ -236,35 +238,19 @@ int BufferQueueCore::getMinMaxBufferCountLocked() const {
 int BufferQueueCore::getMaxBufferCountLocked(bool asyncMode,
         bool dequeueBufferCannotBlock, int maxBufferCount) const {
     int maxCount = mMaxAcquiredBufferCount + mMaxDequeuedBufferCount +
-            getExtraBufferCountLocked(asyncMode, dequeueBufferCannotBlock);
+            ((asyncMode || dequeueBufferCannotBlock) ? 1 : 0);
     maxCount = std::min(maxBufferCount, maxCount);
     return maxCount;
 }
 
 int BufferQueueCore::getMaxBufferCountLocked() const {
-    int maxBufferCount =
-            mMaxAcquiredBufferCount + mMaxDequeuedBufferCount + getExtraBufferCountLocked();
+    int maxBufferCount = mMaxAcquiredBufferCount + mMaxDequeuedBufferCount +
+            ((mAsyncMode || mDequeueBufferCannotBlock) ? 1 : 0);
 
     // limit maxBufferCount by mMaxBufferCount always
     maxBufferCount = std::min(mMaxBufferCount, maxBufferCount);
 
     return maxBufferCount;
-}
-
-int BufferQueueCore::getExtraBufferCountLocked(bool asyncMode,
-                                               bool dequeueBufferCannotBlock) const {
-    if (asyncMode || dequeueBufferCannotBlock) {
-        // One buffer is needed to allow for the asynchronous behavior (producer
-        // replaces the last queued buffer), and another accounts for the extra
-        // slot we use if the consumer is only allowed to acquire a buffer if the
-        // associated fence has signaled (see BufferQueueProducer::queueBuffer).
-        return 1 + !mConsumerCanWait;
-    }
-    return 0;
-}
-
-int BufferQueueCore::getExtraBufferCountLocked() const {
-    return getExtraBufferCountLocked(mAsyncMode, mDequeueBufferCannotBlock);
 }
 
 void BufferQueueCore::clearBufferSlotLocked(int slot) {

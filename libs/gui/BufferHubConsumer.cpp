@@ -147,11 +147,6 @@ status_t BufferHubConsumer::discardFreeBuffers() {
     return INVALID_OPERATION;
 }
 
-status_t BufferHubConsumer::setConsumerCanWait(bool /*canWait*/) {
-    ALOGE("BufferHubConsumer::setConsumerCanWait: not implemented.");
-    return INVALID_OPERATION;
-}
-
 status_t BufferHubConsumer::dumpState(const String8& /*prefix*/, String8* /*outResult*/) const {
     ALOGE("BufferHubConsumer::dumpState: not implemented.");
     return INVALID_OPERATION;
