@@ -67,7 +67,6 @@ Scheduler::~Scheduler() {
     // Stop timers and wait for their threads to exit.
     mDisplayPowerTimer.reset();
     mTouchTimer.reset();
-    mHeuristicIdleTimer.reset();
 
     // Stop idle timer and clear callbacks, as the RefreshRateConfigs may outlive the Scheduler.
     setRefreshRateConfigs(nullptr);
@@ -123,14 +122,8 @@ void Scheduler::setRefreshRateConfigs(std::shared_ptr<RefreshRateConfigs> config
                           .onExpired = [this] { idleTimerCallback(TimerState::Expired); }},
              .kernel = {.onReset = [this] { kernelIdleTimerCallback(TimerState::Reset); },
                         .onExpired = [this] { kernelIdleTimerCallback(TimerState::Expired); }}});
-    mRefreshRateConfigs->startIdleTimer();
 
-    mHeuristicIdleTimer.emplace(
-            "heuristicIdleTimer",
-            std::max(HEURISTIC_TIMEOUT, mRefreshRateConfigs->getIdleTimerTimeout()),
-            [this] { heuristicIdleTimerCallback(TimerState::Reset); },
-            [this] { heuristicIdleTimerCallback(TimerState::Expired); });
-    mHeuristicIdleTimer->start();
+    mRefreshRateConfigs->startIdleTimer();
 }
 
 void Scheduler::run() {
@@ -507,21 +500,11 @@ void Scheduler::registerLayer(Layer* layer) {
     using WindowType = gui::WindowInfo::Type;
 
     scheduler::LayerHistory::LayerVoteType voteType;
-    const auto windowType = layer->getWindowType();
 
     if (!mFeatures.test(Feature::kContentDetection) ||
-        windowType == WindowType::STATUS_BAR ||
-        windowType == WindowType::SYSTEM_ALERT ||
-        windowType == WindowType::TOAST ||
-        windowType == WindowType::SYSTEM_DIALOG ||
-        windowType == WindowType::KEYGUARD_DIALOG ||
-        windowType == WindowType::INPUT_METHOD ||
-        windowType == WindowType::INPUT_METHOD_DIALOG ||
-        windowType == WindowType::NAVIGATION_BAR ||
-        windowType == WindowType::VOLUME_OVERLAY ||
-        windowType == WindowType::NAVIGATION_BAR_PANEL) {
+        layer->getWindowType() == WindowType::STATUS_BAR) {
         voteType = scheduler::LayerHistory::LayerVoteType::NoVote;
-    } else if (windowType == WindowType::WALLPAPER) {
+    } else if (layer->getWindowType() == WindowType::WALLPAPER) {
         // Running Wallpaper at Min is considered as part of content detection.
         voteType = scheduler::LayerHistory::LayerVoteType::Min;
     } else {
@@ -574,9 +557,6 @@ void Scheduler::onTouchHint() {
         std::scoped_lock lock(mRefreshRateConfigsLock);
         mRefreshRateConfigs->resetIdleTimer(/*kernelOnly*/ true);
     }
-    if (mHeuristicIdleTimer) {
-        mHeuristicIdleTimer->reset();
-    }
 }
 
 void Scheduler::setDisplayPowerMode(hal::PowerMode powerMode) {
@@ -626,11 +606,6 @@ void Scheduler::kernelIdleTimerCallback(TimerState state) {
 void Scheduler::idleTimerCallback(TimerState state) {
     applyPolicy(&Policy::idleTimer, state);
     ATRACE_INT("ExpiredIdleTimer", static_cast<int>(state));
-}
-
-void Scheduler::heuristicIdleTimerCallback(TimerState state) {
-    applyPolicy(&Policy::heuristicIdleTimer, state);
-    ALOGV("%s: TimerState %d", __func__, static_cast<int>(state));
 }
 
 void Scheduler::touchTimerCallback(TimerState state) {
@@ -744,8 +719,7 @@ auto Scheduler::chooseDisplayMode() -> std::pair<DisplayModePtr, GlobalSignals> 
     }
 
     const GlobalSignals signals{.touch = mTouchTimer && mPolicy.touch == TouchState::Active,
-                                .idle = mPolicy.idleTimer == TimerState::Expired,
-                                .heuristicIdle = mPolicy.heuristicIdleTimer == TimerState::Expired};
+                                .idle = mPolicy.idleTimer == TimerState::Expired};
 
     return configs->getBestRefreshRate(mPolicy.contentRequirements, signals);
 }
