@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "89300f19_3b6a7b49",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000411
+      },
+      "writtenOn": "2023-08-17T03:07:33Z",
+      "side": 1,
+      "message": "This patchset causes issues with refresh rate toggle on my device\nparticular issue is refresh rate is stuck on 60Hz even after changing it to 120 (min and max both)\n\n\nBTW- This change was also not merged on plus branch",
+      "revId": "c56a3c05e340bebd2267c6022b27026185932163",
+      "serverId": "8ba0da3e-d57f-4bbe-ac74-faf358ba962a"
+    }
+  ]
+}
